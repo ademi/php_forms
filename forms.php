@@ -76,8 +76,18 @@ class form extends genericForm{
     private $template   ='_js <form _action _method _name _id _encryption _extra><div _class> _elements </div></form>';
     private $tags       =array('_name','_id','_class','_action','_method','_encryption','_extra','_js');
 	
-	// 
+	// the attributes of the form
     private $replacements   =array();
+	
+	/************************
+	Constructor:
+		input: 	associated array of "attribute"=>"value"
+				wether or not the form requires a secret key
+		functionality:
+				* populate the replacement associated  array whith "cast value"=> proper html syntax
+				* generates secret key if required
+				
+	*************************/
     public function __construct($details,$secret=TRUE){
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
@@ -91,7 +101,16 @@ class form extends genericForm{
             $this->secret = new formKey($details['name'].'formKey');
         }
     }
+	// returns resulting html
     public function get_html(){return $this->html_output;}
+	
+	/*******************************************************
+		Function verify:
+			functionality: verifies Captcha and secret key
+			rturns :true or false;
+			In case of any suspicious activity the function 
+			kills all session and transfer user to error page
+	********************************************************/
     public function verify($captcha=TRUE){
         if($this->secret->validate()){
             if($captcha == TRUE && ENABLE_CAPTCHA === TRUE){
@@ -112,15 +131,32 @@ class form extends genericForm{
         return $reCaptcha->verifyResponse($_SERVER["REMOTE_ADDR"],$_POST["g-recaptcha-response"]);
     }
 
+	/*******************************************************
+		function add_elements:
+			input: array of generic form objects:
+			
+	********************************************************/
+	
     public function add_elements($elements){
         foreach($elements as $element)$this->elements[]=$element;
     }
+	/********************************************************
+		function: generate_html
+			input: array of generic form elmenets to be added to the elements list
+				if no input is given, the objects current elements list is used
+			functionality:
+				* Generated hidden elements with secret key 
+				* Captchas creation
+				* element field creation
+			output:
+				HTML syntax.
+	*********************************************************/
     public function generate_html($elements=NULL){
         $hidden='';
         if($this->secret!=NULL){
             $this->secret->createKey($this->details['name'].'form_key');
             $hidden = "<input type='hidden' name='".$this->secret->getFormKeyName()."' id='form_key' value='".$this->secret->getFormKey()."' />";
-            if(ENABLE_CAPTCHA === TRUE)$this->captcha = '<div class="g-recaptcha" data-sitekey="6LcybBwTAAAAAP5vRHZAWF_JNfj64VNi3EPjtvMc" data-theme="dark"></div>';
+            if(ENABLE_CAPTCHA === TRUE)$this->captcha = '<div class="g-recaptcha" data-sitekey="*************************" data-theme="dark"></div>';
         }
         if($elements !=NULL)$this->add_elements ($elements);
         $e ='';
@@ -137,7 +173,7 @@ class form extends genericForm{
 }
 class hidden     extends genericForm{
     private $template   ='<input type="hidden" _name _id _value />_extra _js';
-    private $tags =         array('_name','_id','_value','_extra','_js');//array('name'=>'','id'=>"",'value'=>"",'extra'=>"",'js'=>'')
+    private $tags =         array('_name','_id','_value','_extra','_js');
     private $replacements=  array();
     public function __construct($details) {
         foreach($details as $key=>$val){
@@ -155,10 +191,9 @@ class hidden     extends genericForm{
 }
 class text_field extends genericForm{
     private $template   ='<div _class>_js<label> _label <input _id _name _type _default _extra></label></div>';
-    private $tags =         array('_name','_class','_id','_label','_type','_default','_extra','_js');//array('name'=>'','class'=>'','id'=>'','label'=>'','type'=>'','default'=>'','extra'=>'','js'=>'');
+    private $tags =         array('_name','_class','_id','_label','_type','_default','_extra','_js');
     private $replacements=  array();
     public function __construct($details) {
-        //if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
             else if($key == 'extra'|| $key =='label') $this->replacements[]=' '.$val.' ';
@@ -175,11 +210,10 @@ class text_field extends genericForm{
 
 class textarea extends genericForm{
     private $template   = '<div _class><label>_label<textarea _class _id _name _extra>_default</textarea></label></div>';
-    private $tags       =array('_name','_label','_id','_class','_default','_extra');//array('name'=>,'label'=>,'id'=>,'class'=>,'default'=>'',extra'=>)
+    private $tags       =array('_name','_label','_id','_class','_default','_extra');
     private $replacements   =array();
     
     public function __construct($details) {
-        //if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
             else if($key == 'extra'||$key =='label'||$key=='default') $this->replacements[]=' '.$val.' ';
@@ -201,7 +235,6 @@ class radio extends genericForm{
     private $pairs                  =array();
     private $replacements           =array();
     public function __construct($details,$pairs) {
-//        if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
             else if($key == 'extra'||$key == '_label') $this->replacements[]=' '.$val.' ';
@@ -234,10 +267,9 @@ class radio extends genericForm{
 
 class checkbox extends genericForm{
     private $container_template     ='<div _class >_js  <label _class><input type="checkbox" _name _id _value _checked _extra>_label</label></div>';
-    private $tags                   =array('_name','_id','_class','_value','_label','_checked','_extra','_js');//array('name'=>'','id'=>'',class=>'','value'=>'','label'=>'','checked'=>'',extra=>'','js'=>'')
+    private $tags                   =array('_name','_id','_class','_value','_label','_checked','_extra','_js');
     private $replacements           =array();
     public function __construct($details) {
-//        if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
             else if($key == 'extra'||$key =='label') $this->replacements[]=' '.$val.' ';
@@ -269,7 +301,6 @@ class select extends genericForm{
     private $html_output;
     
     public function __construct($details,$pairs){
-//        if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')               $this->replacements[]='';
             else if($key == 'extra')    $this->replacements[]=' '.$val.' ';
@@ -299,10 +330,9 @@ class select extends genericForm{
 
 class button extends genericForm{
     private $template   ='_before_submiting<div _class>_js<input _type _id  _name _label _extra /></div>';
-    private $tags       =array('_label','_name','_class','_id','_type','_extra','_js');//array('label'=>'','name'=>'','class'=>'','id'=>'','type'=>'','extra'=>'','js'=>'')
+    private $tags       =array('_label','_name','_class','_id','_type','_extra','_js');
     private $replacements=  array();
     public function __construct($details) {
-        //if(count($details)!=count($this->tags))report_error('unbalanced elements passed to form object','at '.__FILE__.' LINE: '.__LINE__);
         foreach($details as $key=>$val){
             if($val =='')           $this->replacements[]='';
             
@@ -318,15 +348,3 @@ class button extends genericForm{
         $this->html_output= str_replace($this->tags, $this->replacements, $this->template);
     }
 }
-//
-//$f = new form(array('fomr name','here.php','POST','fomr#id','form#class','encription',' extra','js'));
-//$t = new text_field(array('text label','text class', 'text id', 'text name', 'text', 'defualt text','min="15"','js goes here'));
-//$p = new text_field(array('password: ','pass*class', 'pass#Id', 'pass name', 'password', 'dodo', "",''));
-//$r = new radio(array('radio#name','radio#class','extra="stuff"',''), array(array('male','male label','checked'),array('female','female label','')));
-//$m = new checkbox(array('multi-id','multi-class','multi-extra','multi-js'),array(array("ff-name",'ff-vale','ffffff','checked'),array("xx-name",'xx-vale','xxxxxx',''),array("cc-name",'cc-vale','cccc','')));
-//$a = new textarea(array('area#name','area label','area*id','area-class','area-extra'));
-//$s = new select(array('select-name','select-id','select-class','select#js'), array(array('_name','_id','_class','_js'),array('s','ssssss','selected'),array('m','mmmmm','')));
-//$b = new button(array('submit','submit-name','submit-class','submit-id','submit','',''));
-//$f->add_elements(array($t,$p,$r,$a,$s,$m,$b));
-//$f->generate_html();
-//echo 'from outside <br />'.$f->get_html();
