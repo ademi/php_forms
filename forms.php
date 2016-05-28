@@ -11,15 +11,31 @@ class formKey{
     public function __construct(){
         session_class::start(); 		//if not started start sessions
     }
+	
+	/************************************
+		Function: CreateKey
+		input	: Form Name
+			generates a random key for the given form 
+			and stores it in a session to prevent cross
+			site attacks
+	*************************************/
     public function createKey($name){
         $this->name=$name;
-        
-        if(session_class::exists($this->name))$this->old_key =  session_class::get($this->name);
-        $this->current_key=md5($_SERVER['REMOTE_ADDR'].mt_rand());
+		
+        //in case the form has an already saved key then save it
+        if(session_class::exists($this->name))
+			$this->old_key =  session_class::get($this->name);
+		
+		// generate the key and save it to a session
+        $this->current_key=md5($_SERVER['REMOTE_ADDR'].mt_rand());	
         $_SESSION[$this->name] = $this->current_key;
     }
+	
+	//provide get methods
     public function getFormKey()        {return $this->current_key;}
     public function getFormKeyName()    {return $this->name;}
+	
+	// validate the key on submission (to make sure its our site's form that's submitting data)
     public function validate(){
         if(common::user_input($this->name)==$this->old_key){
             return TRUE;
@@ -27,22 +43,40 @@ class formKey{
         else return FALSE;
     }
 }
+/*************
+ Abstract class to make sure every decendent class has two main methods 
+ to generate and to get the html text;
+ *************/
+ 
 abstract class genericForm{
     abstract public function generate_html();
     abstract public function get_html(); 
 }
+
+/********************************
+Class Form:
+	serves as main container which composes all the html fields and generates
+	the final html text.
+
+*********************************/
 class form extends genericForm{
+	
     private $html_output='';
-    private $elements   = array();
-    private $secret     = NULL;
+    private $elements   = array();		//where all form's element will be contained	
+    private $secret     = NULL;			// weteher the forms requires a secret key
     
+	// Captcha constants
     private $captcha    =   '';
-    private $recaptcha_secret ='6LcybBwTAAAAAKz4Q2MlBqVZIi0hp8MnYdgvzetW';
+    private $recaptcha_secret ='****************************';
     private $response =NULL;
-    
-    private $details    =array();
+	
+    private $details    =array();		// contains the html attributes that goes with the form tag
+	
+	// the mask with which the final output is built
     private $template   ='_js <form _action _method _name _id _encryption _extra><div _class> _elements </div></form>';
-    private $tags       =array('_name','_id','_class','_action','_method','_encryption','_extra','_js');//array('name'=>,'id'=>,'class'=>,'action'=>,'method'=>,'enctype'=>,'extra'=>,'js'=>)
+    private $tags       =array('_name','_id','_class','_action','_method','_encryption','_extra','_js');
+	
+	// 
     private $replacements   =array();
     public function __construct($details,$secret=TRUE){
         foreach($details as $key=>$val){
