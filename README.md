@@ -5,7 +5,7 @@ This php script encapsulates the generation of HTML forms in one place, making i
 
 # Usage Example:
 
-<?php
+<?php <br />
 	$form = new form(array('fomr name','here.php','POST','fomr#id','form#class','encription',' extra','js'));<br/>
 	$text = new text_field(array('text label','text class', 'text id', 'text name', 'text', 'defualt text','min="15"','js goes here'));<br />
 	$password = new text_field(array('password: ','pass*class', 'pass#Id', 'pass name', 'password', 'dodo', "",''));<br />
